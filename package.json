@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "start": "npx esrun index.mts"
+
+  },
+  "dependencies": {
+    "@atproto/api": "^0.13.16",
+    "@types/node": "^22.9.1",
+    "esrun": "^3.2.26"
+  }
+}
