@@ -1,9 +1,22 @@
-import { Agent, AppBskyGraphDefs, CredentialSession } from '@atproto/api'
+import { Agent, AppBskyGraphDefs, AppBskyGraphGetFollows, CredentialSession } from '@atproto/api'
 
 function sleep(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+async function unblockLists(agent: Agent, blocked: AppBskyGraphDefs.ListView[]) {
+  console.log(`temporally unblocking lists`)
+  for (let list of blocked) {
+    await agent.unblockModList(list.uri)
+  }
+}
+async function blockLists(agent: Agent, blocked: AppBskyGraphDefs.ListView[]) {
+  console.log(`blocking lists again`)
+  for (let list of blocked) {
+    await agent.blockModList(list.uri)
+  }
 }
 
 const session = new CredentialSession(new URL("https://bsky.social"))
@@ -90,10 +103,7 @@ console.log(`fetching list complete. Total blocked/muted users: ${blockedAndMute
 
 
 // unblock lists so they show up on followed users
-console.log(`temporally unblocking lists`)
-for (let list of blockedLists) {
-  await agent.unblockModList(list.uri)
-}
+await unblockLists(agent, blockedLists)
 
 console.log(`waiting a few seconds for the unblocks to take effect`)
 await sleep(1000*3)
@@ -104,16 +114,25 @@ let followedUsers: User[] = []
 do {
   if (!agent.did) {
     console.log("error empty agent did")
+    await blockLists(agent, blockedLists)
     process.exit(1)
   }
-  const resp = await agent.app.bsky.graph.getFollows({
-    actor: agent.did,
-    cursor: cursor,
-    limit: 100,
-  })
+  let resp: AppBskyGraphGetFollows.Response
+  try {
+    resp = await agent.app.bsky.graph.getFollows({
+      actor: agent.did,
+      cursor: cursor,
+      limit: 100,
+    })
+  } catch (err) {
+    await blockLists(agent, blockedLists)
+    console.error(err)
+    process.exit(1)
+  }
   const follows = resp.data?.follows
   cursor = resp.data?.cursor
   if (!follows) {
+    await blockLists(agent, blockedLists)
     console.log("error while getting follows")
     console.log(resp)
     process.exit(1)
@@ -125,10 +144,7 @@ do {
 
 console.log(`fetching followed complete. Total followed: ${followedUsers.length}`)
 
-console.log(`blocking lists again`)
-for (let list of blockedLists) {
-  await agent.blockModList(list.uri)
-}
+await blockLists(agent, blockedLists)
 
 console.log("comparing followed and muted/blocked list")
 console.log("--- RESULTS (Blocked/muted users you follow) ---")
