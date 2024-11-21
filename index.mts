@@ -8,8 +8,8 @@ function sleep(ms: number) {
 
 const session = new CredentialSession(new URL("https://bsky.social"))
 await session.login({
-  identifier: '<your handle>',
-  password: '<your app password>',
+  identifier: '<handle>',
+  password: '<app password (NOT YOUR PASSWORD)>',
 })
 const agent = new Agent(session)
 
@@ -96,7 +96,7 @@ for (let list of blockedLists) {
 }
 
 console.log(`waiting a few seconds for the unblocks to take effect`)
-await sleep(1000*10)
+await sleep(1000*3)
 
 cursor = undefined
 console.log(`getting followed users`)
